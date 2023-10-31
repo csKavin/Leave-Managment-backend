@@ -1,6 +1,6 @@
 const asyncHandler = require("express-async-handler");
 const Contact = require("../models/contactModel");
-
+const leaveModel = require("../models/leaveModel");
 
 const getContacts = asyncHandler(async (req, res) => {
   const contacts = await Contact.find({ user_id: req.user.id });
@@ -11,7 +11,6 @@ const getAllContacts = asyncHandler(async (req, res) => {
   const contacts = await Contact.find();
   res.status(200).json(contacts);
 });
-
 
 const createContact = asyncHandler(async (req, res) => {
   console.log("The request body is :", req.body);
@@ -34,7 +33,6 @@ const createContact = asyncHandler(async (req, res) => {
   res.status(201).json(contact);
 });
 
-
 const getContact = asyncHandler(async (req, res) => {
   const contact = await Contact.findById(req.params.id);
   if (!contact) {
@@ -53,7 +51,6 @@ const getUserContacts = asyncHandler(async (req, res) => {
   res.status(200).json(contact);
 });
 
-
 const updateContact = asyncHandler(async (req, res) => {
   try {
     const updatedRequest = await Contact.findByIdAndUpdate(req.params.id, { $set: { status: "approved" } }, { new: true });
@@ -69,7 +66,7 @@ const updateContact = asyncHandler(async (req, res) => {
 const RejectRequest = asyncHandler(async (req, res) => {
   try {
     const updatedRequest = await Contact.findByIdAndUpdate(req.params.id, { $set: { status: "rejected" } }, { new: true });
-    console.log(updatedRequest)
+    console.log(updatedRequest);
     if (!updatedRequest) {
       return res.status(404).json({ error: "Leave request not found" });
     }
@@ -79,7 +76,6 @@ const RejectRequest = asyncHandler(async (req, res) => {
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
-
 
 const deleteContact = asyncHandler(async (req, res) => {
   const contact = await Contact.findById(req.params.id);
@@ -95,6 +91,27 @@ const deleteContact = asyncHandler(async (req, res) => {
   res.status(200).json(contact);
 });
 
+
+
+const postLeave = asyncHandler(async (req, res) => {
+  const { leavetype, content } = req.body;
+  if (!leavetype || !content) {
+    res.status(400);
+    throw new Error("All fields are manditory");
+  }
+  const Leave = await leaveModel.create({
+    leavetype,
+    content,
+  });
+  res.status(201).json(Leave);
+});
+
+
+const getLeave = asyncHandler(async (req, res) => {
+  const leave = await leaveModel.find();
+  res.status(200).json(leave);
+});
+
 module.exports = {
   getAllContacts,
   getContacts,
@@ -103,5 +120,7 @@ module.exports = {
   updateContact,
   deleteContact,
   getUserContacts,
-  RejectRequest
+  RejectRequest,
+  postLeave,
+  getLeave
 };
