@@ -1,6 +1,5 @@
 const asyncHandler = require("express-async-handler");
 const Contact = require("../models/contactModel");
-const leaveModel = require("../models/leaveModel");
 
 const getContacts = asyncHandler(async (req, res) => {
   const contacts = await Contact.find({ user_id: req.user.id });
@@ -92,26 +91,6 @@ const deleteContact = asyncHandler(async (req, res) => {
 });
 
 
-
-const postLeave = asyncHandler(async (req, res) => {
-  const { leavetype, content } = req.body;
-  if (!leavetype || !content) {
-    res.status(400);
-    throw new Error("All fields are manditory");
-  }
-  const Leave = await leaveModel.create({
-    leavetype,
-    content,
-  });
-  res.status(201).json(Leave);
-});
-
-
-const getLeave = asyncHandler(async (req, res) => {
-  const leave = await leaveModel.find();
-  res.status(200).json(leave);
-});
-
 module.exports = {
   getAllContacts,
   getContacts,
@@ -121,6 +100,4 @@ module.exports = {
   deleteContact,
   getUserContacts,
   RejectRequest,
-  postLeave,
-  getLeave
 };
