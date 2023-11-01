@@ -1,5 +1,23 @@
 const asyncHandler = require("express-async-handler");
 const Contact = require("../models/contactModel");
+const nodemailer = require("nodemailer");
+const Mailgen = require("mailgen");
+
+const config = {
+  service: "gmail",
+  auth: {
+    user: process.env.EMAIL,
+    pass: process.env.PASSWORD,
+  },
+};
+const transporter = nodemailer.createTransport(config);
+const MailGenerator = new Mailgen({
+  theme: "default",
+  product: {
+    name: "TSquaredC",
+    link: "https://mailgen.js/",
+  },
+});
 
 const getContacts = asyncHandler(async (req, res) => {
   const contacts = await Contact.find({ user_id: req.params.id });
@@ -12,7 +30,6 @@ const getAllContacts = asyncHandler(async (req, res) => {
 });
 
 const createContact = asyncHandler(async (req, res) => {
-  console.log("The request body is :", req.body);
   const { user_name, email, start_date, end_date, leave_type, description } = req.body;
   if ((!start_date || !end_date || !leave_type, !description, !user_name, !email)) {
     res.status(400);
@@ -53,10 +70,34 @@ const getUserContacts = asyncHandler(async (req, res) => {
 const updateContact = asyncHandler(async (req, res) => {
   try {
     const updatedRequest = await Contact.findByIdAndUpdate(req.params.id, { $set: { status: "approved" } }, { new: true });
+    const emailId = await Contact.findById(req.params.id);
     if (!updatedRequest) {
       return res.status(404).json({ error: "Leave request not found" });
     }
-    res.status(200).json({ message: "Leave status updated successfully", updatedRequest });
+    let response = {
+      body: {
+        intro: "Your leave application approved by the admin",
+      },
+    };
+    let mail = MailGenerator.generate(response);
+    if (emailId) {
+      let message = {
+        from: process.env.EMAIL,
+        to: emailId.email,
+        subject: "Application for leave",
+        html: mail,
+      };
+      transporter
+        .sendMail(message)
+        .then(() => {
+          return res;
+        })
+        .catch((error) => {
+          res.status(400).json({ error: "mail not send " });
+          console.log("error");
+        });
+      res.status(200).json({ message: "Leave status accepted successfully and send through mail", updatedRequest });
+    }
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Internal Server Error" });
@@ -65,10 +106,31 @@ const updateContact = asyncHandler(async (req, res) => {
 const RejectRequest = asyncHandler(async (req, res) => {
   try {
     const updatedRequest = await Contact.findByIdAndUpdate(req.params.id, { $set: { status: "rejected" } }, { new: true });
-    console.log(updatedRequest);
+    const emailId = await Contact.findById(req.params.id);
     if (!updatedRequest) {
       return res.status(404).json({ error: "Leave request not found" });
     }
+    let response = {
+      body: {
+        intro: "Your leave application Rejected by the admin",
+      },
+    };
+    let mail = MailGenerator.generate(response);
+    let message = {
+      from: process.env.EMAIL,
+      to: emailId.email,
+      subject: "Application for leave",
+      html: mail,
+    };
+    transporter
+      .sendMail(message)
+      .then(() => {
+        return res;
+      })
+      .catch((error) => {
+        res.status(400).json({ error: "mail not send " });
+        console.log("error");
+      });
     res.status(200).json({ message: "Leave status updated successfully", updatedRequest });
   } catch (error) {
     console.error(error);
@@ -89,7 +151,6 @@ const deleteContact = asyncHandler(async (req, res) => {
   await Contact.deleteOne({ _id: req.params.id });
   res.status(200).json(contact);
 });
-
 
 module.exports = {
   getAllContacts,
