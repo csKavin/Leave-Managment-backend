@@ -3,11 +3,12 @@ const router = express.Router();
 const { getContacts,
     createContact, getContact, updateContact, deleteContact,
      getAllContacts,
-      getUserContacts, RejectRequest
+      getUserContacts, RejectRequest, dashboard
      } = require("../controllers/contactController");
 const validateToken = require("../middleware/validateTokenHandler");
 
 router.use(validateToken);
+router.route("/dashboard").get(dashboard)
 router.route("/").post(createContact);
 router.route("/user/:id").get(getContacts)
 router.route("/all").get(getAllContacts);

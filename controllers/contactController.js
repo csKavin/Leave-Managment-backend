@@ -1,7 +1,10 @@
 const asyncHandler = require("express-async-handler");
-const Contact = require("../models/contactModel");
+const moment = require("moment/moment");
 const nodemailer = require("nodemailer");
 const Mailgen = require("mailgen");
+const Contact = require("../models/contactModel");
+const leaveModel = require("../models/leaveModel");
+
 
 const config = {
   service: "gmail",
@@ -24,6 +27,41 @@ const getContacts = asyncHandler(async (req, res) => {
   res.status(200).json(contacts);
 });
 
+const dashboard = asyncHandler(async (req, res) => {
+  try {
+    const contacts = await Contact.find();
+    const leave = await leaveModel.find();
+    let pendingCount = 0;
+    let approvedCount = 0;
+    let rejectedCount = 0;
+    let leaveCount = 0;
+    if (contacts && leave) {
+      contacts.forEach((item) => {
+        if (item.status === "pending") {
+          pendingCount++;
+        } else if (item.status === "approved") {
+          approvedCount++;
+        } else if (item.status === "rejected") {
+          rejectedCount++;
+        }
+      });
+      leave.forEach((item) => {
+        leaveCount++;
+      });
+    }
+    let response = {
+      totalLeave: leaveCount,
+      pendingLeave: pendingCount,
+      approvedLeave: approvedCount,
+      rejectedLeave: rejectedCount,
+    };
+    res.status(200).json(response);
+  } catch (error) {
+    res.status(400).json({ error: "Internal error" });
+  }
+
+});
+
 const getAllContacts = asyncHandler(async (req, res) => {
   const contacts = await Contact.find();
   res.status(200).json(contacts);
@@ -35,15 +73,20 @@ const createContact = asyncHandler(async (req, res) => {
     res.status(400);
     throw new Error("All fields are mandatory !");
   }
+  const date1 = moment(start_date, 'ddd, DD MMM YYYY HH:mm:ss ZZ');
+  const date2 = moment(end_date , 'ddd, DD MMM YYYY HH:mm:ss ZZ');
+  const daysDifference = date2.diff(date1, 'days');
+
   const contact = await Contact.create({
-    start_date,
-    end_date,
+    start_date : start_date,
+    end_date : end_date,
     leave_type,
     description,
     status: "pending",
     user_id: req.user.id,
     user_name,
     email,
+    daysDifference
   });
 
   res.status(201).json(contact);
@@ -129,11 +172,9 @@ const RejectRequest = asyncHandler(async (req, res) => {
       })
       .catch((error) => {
         res.status(400).json({ error: "mail not send " });
-        console.log("error");
       });
     res.status(200).json({ message: "Leave status updated successfully", updatedRequest });
   } catch (error) {
-    console.error(error);
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
@@ -153,6 +194,7 @@ const deleteContact = asyncHandler(async (req, res) => {
 });
 
 module.exports = {
+  dashboard,
   getAllContacts,
   getContacts,
   createContact,

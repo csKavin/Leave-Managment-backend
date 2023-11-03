@@ -35,6 +35,10 @@ const contactSchema = mongoose.Schema(
             type: String,
             required: [true, "please add the email"],
         },
+        daysDifference:{
+            type:String,
+            required: [true, "please add the diffrence"],
+        }
        
     },
     {
